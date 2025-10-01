@@ -1,0 +1,58 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  IMAGE_NAME: my-app
+  MANIFESTS_REPO: YuqingWang2020/my-app-manifests # 你的Manifests仓库
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  update-manifests:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Manifests Repo
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ env.MANIFESTS_REPO }}
+        token: ${{ secrets.GH_PAT }} # 需要有写入Manifests仓库的权限
+        path: manifests
+
+    - name: Update Image Tag
+      run: |
+        sed -i 's|${{ secrets.DOCKERHUB_USERNAME }}/my-app:.*|${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ github.sha }}|' manifests/deployment.yaml
+
+    - name: Commit and Push changes
+      run: |
+        cd manifests
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add .
+        git commit -m "CI: Update image to ${{ github.sha }}"
+        git push

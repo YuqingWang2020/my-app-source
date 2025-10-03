@@ -44,9 +44,20 @@ jobs:
         token: ${{ secrets.GH_PAT }} # 需要有写入Manifests仓库的权限
         path: manifests
 
+    #- name: Update Image Tag
+    #  run: |
+    #    sed -i 's|${{ secrets.DOCKERHUB_USERNAME }}/my-app:.*|${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ github.sha }}|' manifests/deployment.yaml
     - name: Update Image Tag
       run: |
-        sed -i 's|${{ secrets.DOCKERHUB_USERNAME }}/my-app:.*|${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ github.sha }}|' manifests/deployment.yaml
+        # 调试：显示当前内容
+        echo "=== Before update ==="
+        cat manifests/deployment.yaml | grep "image:"
+        # 更新镜像标签 - 匹配任何镜像
+        sed -i 's|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ github.sha }}|' manifests/deployment.yaml
+        # 验证更新
+        echo "=== After update ==="
+        cat manifests/deployment.yaml | grep "image:"
+
 
     - name: Commit and Push changes
       run: |

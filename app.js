@@ -4,7 +4,7 @@ const port = 80;
 const server = http.createServer((req, res) => {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/plain');
-  res.end('Hello World from my automated CI/CD pipeline - Version 2!\n');
+  res.end('Hello World from my automated CI/CD pipeline - Version 3!\n');
 });
 
 server.listen(port, () => {
